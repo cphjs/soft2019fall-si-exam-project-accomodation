@@ -9,6 +9,7 @@
   "author": "me",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.5.5",
     "soap": "^0.30.0"
   }
 }

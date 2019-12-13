@@ -1,14 +1,24 @@
 const HotelClient = require('./HotelClient');
+const MqClient = require('./MqClient');
 
 
-HotelClient.create('https://hotel-backend.azurewebsites.net/ImplementingServiceHotel.svc?wsdl')
-  .then(async client => {
-    //let result = await client.getAvailableHotels(new Date(), new Date(), 'Copenhagen')
-    //let result = await client.findRooms(1, new Date(), new Date()).catch(console.error)
-    client.client.on('message', (msg) => {
-      console.log('msg', msg);
+Promise.all([
+  HotelClient.create('https://hotel-backend.azurewebsites.net/ImplementingServiceHotel.svc?wsdl'),
+  MqClient.create('amqp://localhost')
+])
+  .then(values => {
+    let hotelClient, mqClient;
+    [hotelClient, mqClient] = values;
+
+    return mqClient.onAvailabilityRequest(async params => {
+      console.log('received hotel availability request', params)
+      let hotels = await hotelClient.getAvailableHotels(new Date(params.startDate), new Date(params.endDate), params.city);
+      console.log('received hotel list from remote service', hotels.length, params.sessionID);
+
+      mqClient.sendHotelResultMessage({
+        sessionID: params.sessionID,
+        hotels: hotels,
+      })
+      console.log('published hotel list for', params.sessionID);
     })
-    //let result = await client.createBooking(new Date(), new Date(), 12, [5, 6], 222333).catch(console.error)
-    let result = await client.findBookings(222333).catch(console.error)
-    console.log('result', result);
   });

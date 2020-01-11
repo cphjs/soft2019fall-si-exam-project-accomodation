@@ -24,7 +24,7 @@ class HotelClient {
       endDate: endDate.toISOString(),
       roomType,
     }))[0];
-    return result.FindRoomsResult ? result.FindRoomsResult : [];
+    return result.FindRoomsResult ? result.FindRoomsResult.RoomDetails : [];
   }
 
   async createBooking(startDate, endDate, numGuests, roomIds, passportNumber) {

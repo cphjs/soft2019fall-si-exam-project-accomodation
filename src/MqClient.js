@@ -11,18 +11,32 @@ module.exports = class MqClient {
     this.channel = await this.connection.createChannel();
   }
 
-
-  async onAvailabilityRequest(cb) {
-    await this.channel.assertQueue('availability');
-    await this.channel.consume('availability', msg => {
-      if (msg === null) return;
-      cb(JSON.parse(msg.content.toString()));
+  async on(queue, cb) {
+    await this.channel.assertQueue(queue);
+    await this.channel.consume(queue, msg => {
+      if (msg === null) {
+        this.channel.nack(msg);
+        return;
+      }
+      this.channel.ack(msg);
+      const payload = JSON.parse(msg.content.toString());
+      console.log(`[Rabbit][${queue}] Received payload:`, payload)
+      cb(payload);
     });
   }
 
+  async send(queue, data) {
+    await this.channel.assertQueue(queue);
+    this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(data)))
+    console.log(`[Rabbit][${queue}] Sent payload`, data);
+  }
+
+  async onAvailabilityRequest(cb) {
+    return this.on('availability', cb);
+  }
+
   async sendHotelResultMessage(data) {
-    await this.channel.assertQueue('availabilityResults');
-    this.channel.sendToQueue('availabilityResults', Buffer.from(JSON.stringify(data)))
+    await this.send('availabilityResults', data);
   }
 
 
